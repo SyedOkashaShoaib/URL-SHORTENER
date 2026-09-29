@@ -10,14 +10,17 @@ let protocolSet = null;
 
 function populateProtocolSet() {
     const filePath = path.resolve('src', 'settings.json');
+    let protocols = '';
     try {
-        const protocols = fs.readFileSync(filePath, 'utf-8');
+        protocols = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        console.log(protocols);
     }
     catch (error) {
         console.error(error.message);
         exit(1);
     }
     protocolSet = new Set(protocols);
+    console.log(protocolSet);
 }
 
 const server = http.createServer((req, res) => {
@@ -55,19 +58,21 @@ const server = http.createServer((req, res) => {
                     }
                     res.statusCode = 400;
                     res.setHeader('Content-Type', 'text/plain');
+                    let parsedReqData = '';
                     try {
-                        const parsedReqData = JSON.parse(body);
+                        parsedReqData = JSON.parse(body);
                     }
                     catch (error) {
                         console.log(error.message);
                         res.end('The request data is not valid JSON');
                         return;
                     }
-                    let isValid, errorMessage = validateUrl(parsedReqData('url'), protocolSet);
-                    if (isValid) {
+                    let {isValid, errorMessage }= validateUrl(parsedReqData['url'], protocolSet);
+                    console.log(isValid);
+                    if (isValid === true) {
                         res.statusCode = 201;
                         res.setHeader('Content-Type', 'application/json');
-                        res.end(JSON.stringify("later on this will contain the shortened url"));
+                        res.end(JSON.stringify("later on, this will contain the shortened url"));
                         return;
                     }
                     res.end(errorMessage);
