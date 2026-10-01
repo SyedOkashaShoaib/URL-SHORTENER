@@ -13,7 +13,7 @@ function populateProtocolSet() {
     let protocols = '';
     try {
         protocols = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        console.log(protocols);
+        // console.log(protocols);
     }
     catch (error) {
         console.error(error.message);
