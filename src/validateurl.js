@@ -1,12 +1,10 @@
 export function validateUrl(requestData, protocolSet) {
-    if (typeof (requestData) !== String) {
+    if (typeof requestData !== 'string') {
         return { isValid: false, errorMessage: "The URL must be a string" };
     } //if not for this check, '{\"url\":[\"https://example.com\"]}' would be accepted as well, because js can convert this into a string implicitly.
     let url = null;
     try {
         url = new URL(requestData);
-        console.log(url);
-        console.log(url.protocol);
     }
     catch (error) {
         console.error(error);

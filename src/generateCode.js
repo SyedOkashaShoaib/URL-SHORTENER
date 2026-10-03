@@ -8,10 +8,3 @@ export function generateShortCode() {
     }
     return string;
 }
-
-let codeSet = new Set();
-for (let i = 0; i < 1000000; i++ ) {
-    codeSet.add(generateShortCode());
-}
-console.log("Total generated codes: 1000000");
-console.log("Duplicates generated: ", 1000000 - codeSet.size);

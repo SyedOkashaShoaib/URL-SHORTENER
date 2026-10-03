@@ -3,6 +3,9 @@ import path from "node:path";
 import fs from "node:fs";
 import { exit } from "node:process";
 import { validateUrl } from "./validateurl.js";
+import { validateCode } from "./validateCode.js";
+import "dotenv/config";
+import pg from "pg";
 
 const MAX_BODY_SIZE = 1e3;
 let protocolSet = null;
@@ -13,15 +16,20 @@ function populateProtocolSet() {
     let protocols = '';
     try {
         protocols = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        // console.log(protocols);
+ 
     }
     catch (error) {
         console.error(error.message);
         exit(1);
     }
     protocolSet = new Set(protocols);
-    console.log(protocolSet);
+    
+
 }
+
+
+
+
 
 const server = http.createServer((req, res) => {
     const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
@@ -52,7 +60,7 @@ const server = http.createServer((req, res) => {
                     }
                     body += chunk;
                 });
-                req.on('end', () => {
+                req.on('end', async () => {
                     if (rejected === true) {
                         return;
                     }
@@ -63,17 +71,39 @@ const server = http.createServer((req, res) => {
                         parsedReqData = JSON.parse(body);
                     }
                     catch (error) {
-                        console.log(error.message);
+                        console.error(error.message);
                         res.end('The request data is not valid JSON');
                         return;
                     }
-                    let {isValid, errorMessage }= validateUrl(parsedReqData['url'], protocolSet);
-                    console.log(isValid);
+                    let { isValid, errorMessage } = validateUrl(parsedReqData['url'], protocolSet);
+                    // console.log(isValid);
                     if (isValid === true) {
-                        res.statusCode = 201;
-                        res.setHeader('Content-Type', 'application/json');
-                        res.end(JSON.stringify("later on, this will contain the shortened url"));
-                        return;
+                        try {
+                            const short_code = await validateCode(pool, parsedReqData['url']);
+                            res.statusCode = 201;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.end(JSON.stringify({short_url : short_code}));
+                            //we have not yet created the shortened url. im just returning the short code temporarily to understand the flow of the program.
+                            return;
+                        }
+                        catch (error) {
+                            if (error.code === 'UNKNOWN_DATABASE_ERROR') {
+                                res.statusCode = 500;
+                                res.setHeader('Content-Type', 'text/plain');
+                                res.end("An internal server error occured");
+                                return;
+                            }
+                            else if (error.code === 'CODE_GENERATION_FAILED') {
+                                res.statusCode = 500;
+                                res.setHeader('Content-Type', 'text/plain');
+                                res.end("An internal server error occured");
+                                return;
+                                //*If i am handling both errors the same way, then why two different conditional blocks? 
+                                // Perhaps i can handle code generation failed error in another way. But this error is very
+                                // unlikely to occur. */
+                            }
+                        }
+
                     }
                     res.end(errorMessage);
                     return;
@@ -94,9 +124,14 @@ const server = http.createServer((req, res) => {
 
 
 populateProtocolSet();
+const pool = new pg.Pool({
+    max: 10,
+    idleTimeoutMillis: 10000, //close idle connections after 10s
+    connectionTimeoutMillis: 5000
+});
 server.listen(3000);
 
-//the codebase needs to be refactored badly
+//the codebase needs to be refactored badly. Everything is starting to look apocalyptic.
 
 
 // Every request path through your handler must eventually produce a response.
