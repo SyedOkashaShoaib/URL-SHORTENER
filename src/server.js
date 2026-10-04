@@ -38,7 +38,11 @@ const server = http.createServer(async (req, res) => {
                 res.end("The requested web page or resource could not be found");
             }
             break;
-
+        case 'GET':
+            if (SHORT_URL_PATHNAME_PATTERN.test(parsedUrl.pathname)) {
+                
+            }
+            break;
         default:
             res.statusCode = 404;
             res.setHeader('Content-Type', 'text/plain');
