@@ -1,14 +1,11 @@
 import { generateShortCode } from "./generateCode.js";
+import { insertQuery } from "./db.js";
 
-
-export async function validateCode(pool, original_url) {
+export async function createUrl(pool, original_url) {
     for (let i = 0; i < 5; i++) {
         let short_code = generateShortCode();
         try {
-            await pool.query(
-                'INSERT INTO url_information (short_code, original_url) VALUES ($1, $2)',
-                [short_code, original_url]
-            );
+            await insertQuery(short_code, original_url, pool);
             return short_code;
         }
         catch (error) {
@@ -17,9 +14,7 @@ export async function validateCode(pool, original_url) {
                 //We dont need to throw this error, just logging it (later in a log file perhaps? ) for traceability.
             }
             else {
-                const unknownError = new Error('An error occured while inserting the generated code in the database');
-                unknownError.code = 'UNKNOWN_DATABASE_ERROR';
-                throw unknownError;
+                throw new Error('An error occured while inserting the generated code in the database');
                 //how does the server handle these types of errors? 
             }
         }
