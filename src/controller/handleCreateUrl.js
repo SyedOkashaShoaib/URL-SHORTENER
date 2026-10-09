@@ -1,13 +1,15 @@
 import { validateUrl } from "../validateurl.js";
 import { createUrl } from "../createUrl.js";
 import { readReqData } from "../body.js";
+import "dotenv/config";
 
 export async function handleCreateUrl(req, res, pool, protocolSet) {
 
-    if (req.headers['content-type'] !== 'application/json') {
+    const contentType = req.headers['content-type'] ?? ''; // ?? is a logical operator that returns the value on left if it is not null, or undefined, otherwisee it retursn the value on the right.
+    const mediaType = contentType.split(';')[0].toLowerCase();
+    if (mediaType !== 'application/json') {
         res.statusCode = 415;
-        res.setHeader('Content-type', 'text/plain');
-        res.end('Incorrect content type.');
+        res.end('Incorrect Content Type. Ensure the content type is application/json');
         return;
     }
 
@@ -16,18 +18,19 @@ export async function handleCreateUrl(req, res, pool, protocolSet) {
         const jsonBody = JSON.parse(body); //parse the request body.
         let { isValid, errorMessage } = validateUrl(jsonBody['url'], protocolSet);
         if (isValid) {
-            const short_code = await createUrl(pool, jsonBody['url']); //rename short_code to shortUrl
+            const shortCode = await createUrl(pool, jsonBody['url']);
+            const shortUrl = new URL(shortCode, process.env.BASE);
             res.statusCode = 201;
             res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ short_url: short_code }));
-            //we have not yet created the shortened url. im just returning the short code temporarily to understand the flow of the program.
+            res.end(JSON.stringify({ short_url: shortUrl.href })); //href sends a string. if we wrote shortUrl only, even then a string would have been sent, however this makes the intention more evident.
             return;
-
         }
+
         res.statusCode = 400;
         res.end(errorMessage);
         return;
     }
+
     catch (error) {
         if (error.code === 'SIZE_ERROR') {
             res.statusCode = 413;
@@ -45,6 +48,4 @@ export async function handleCreateUrl(req, res, pool, protocolSet) {
             return;
         }
     }
-
-
 }

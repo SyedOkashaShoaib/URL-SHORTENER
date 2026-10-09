@@ -1,56 +1,47 @@
 import http from "node:http";
-import path from "node:path";
-import fs from "node:fs";
-import { exit } from "node:process";
 import { handleCreateUrl } from "./controller/handleCreateUrl.js";
-import { createDbPool } from "./db.js";
+import { handleRedirectUrl } from "./controller/handleRedirectUrl.js";
 
+const SHORT_URL_PATHNAME_PATTERN = /^\/([A-Za-z0-9]{6})$/;
 
-let protocolSet = null;
-const SHORT_URL_PATHNAME_PATTERN = /^[A-Za-z0-9]{6}$/;
+export function createServer(pool, protocolSet) {
 
-function populateProtocolSet() {
-    const filePath = path.resolve('src', 'settings.json');
-    let protocols = '';
-    try {
-        protocols = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-
-    }
-    catch (error) {
-        console.error(error.message);
-        exit(1);
-    }
-    protocolSet = new Set(protocols);
-}
-
-const server = http.createServer(async (req, res) => {
-    const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
-    res.setHeader('Content-Type', 'text/plain');
-    switch (req.method) {
-        case 'POST':
-            if (parsedUrl.pathname === '/urls' && Object.keys(Object.fromEntries(parsedUrl.searchParams)).length === 0) {
+    const server = http.createServer(async (req, res) => {
+        const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
+        res.setHeader('Content-Type', 'text/plain');
+        const match = parsedUrl.pathname.match(SHORT_URL_PATHNAME_PATTERN);
+        if (parsedUrl.pathname === '/urls') {
+            if (req.method === 'POST') {
                 await handleCreateUrl(req, res, pool, protocolSet);
                 return;
             }
             else {
-                res.statusCode = 404;
-                res.setHeader('Content-Type', 'text/plain');
-                res.end("The requested web page or resource could not be found");
+                res.statusCode = 405;
+                res.setHeader('Allow', 'POST');
+                res.end("Method not allowed");
+                return;
             }
-            break;
-        case 'GET':
-            if (SHORT_URL_PATHNAME_PATTERN.test(parsedUrl.pathname)) {
-                
+        }
+        else if (match) {
+            if (req.method === 'GET') {
+                const shortCode = match[1];
+                await handleRedirectUrl(shortCode, res, pool);
+                return;
             }
-            break;
-        default:
+            else {
+                res.statusCode = 405;
+                res.setHeader('Allow', 'GET');
+                res.end("Method not allowed");
+                return;
+            }
+        }
+        else {
             res.statusCode = 404;
-            res.setHeader('Content-Type', 'text/plain');
             res.end('The server can not process this request.');
+            return;
+        }
     }
-});
+    );
+    return server;
+}
 
-
-populateProtocolSet();
-const pool = createDbPool();
-server.listen(3000);

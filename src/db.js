@@ -16,3 +16,11 @@ export async function insertQuery(short_code, original_url, pool ) {
         [short_code, original_url]
     );
 }
+
+export async function returnOriginalUrl(shortCode, pool) {
+    const result = await pool.query(
+        'SELECT original_url from url_information WHERE short_code = $1',
+        [shortCode]
+    );
+    return (result.rows[0]) ? result.rows[0].original_url : false;
+}

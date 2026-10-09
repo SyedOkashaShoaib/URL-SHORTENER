@@ -6,5 +6,5 @@ export function generateShortCode() {
     for (let i = 0; i < LIMIT; i++) {
         string += alphabet[randomInt(0, alphabet.length)];
     }
-    return string;
+  return string;
 }

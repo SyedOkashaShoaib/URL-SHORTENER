@@ -14,6 +14,7 @@ export async function createUrl(pool, original_url) {
                 //We dont need to throw this error, just logging it (later in a log file perhaps? ) for traceability.
             }
             else {
+                console.error(error.message);
                 throw new Error('An error occured while inserting the generated code in the database');
                 //how does the server handle these types of errors? 
             }
