@@ -1,6 +1,6 @@
 import http from "node:http";
-import { handleCreateUrl } from "./controller/handleCreateUrl.js";
-import { handleRedirectUrl } from "./controller/handleRedirectUrl.js";
+import { handleCreateUrl } from "./controllers/handleCreateUrl.js";
+import { handleRedirectUrl } from "./controllers/handleRedirectUrl.js";
 
 const SHORT_URL_PATHNAME_PATTERN = /^\/([A-Za-z0-9]{6})$/;
 
