@@ -1,36 +1,46 @@
 import { createDbPool } from "./db.js";
 import { createServer } from "./server.js";
 import { validateConfig } from "./validateConfig.js";
-import path from "node:path";
-import fs from "node:fs";
-import { exit } from "node:process";
+import { shutdown } from "./handleShutdown.js";
+import { process } from "node:process";
 
-
-
-function populateProtocolSet() {
-    const filePath = path.resolve('src', 'settings.json');
-    let protocols = '';
-    try {
-        protocols = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-
-    }
-    catch (error) {
-        console.error(error.message);
-        exit(1);
-    }
-    const protocolSet = new Set(protocols);
-    return protocolSet;
-}
 try {
     validateConfig();
-    const protocolSet = populateProtocolSet();
+    const protocolSet = new Set(
+        ["http:",
+         "https:"]
+    );
     const pool = await createDbPool();
     const server = createServer(pool, protocolSet);
     server.listen(3000, () => {
         console.log("Server is listening for incoming requets...");
     });
 }
-catch(error) {
+catch (error) {
     console.error("Server startup failed: ", error.message);
-    exit(1);
+    process.exit(1);
 }
+
+process.on("SIGINT", async () => {
+    try {
+        await shutdown(pool, server);
+        process.exitCode = 0;
+    }
+    catch (error) {
+        process.exitCode = 1;
+    }
+    console.log("Shutting down server..");
+    process.exit();
+});
+
+process.on("SIGTERM", async () => {
+    try {
+        await shutdown(pool, server);
+        process.exitCode = 0;
+    }
+    catch (error) {
+        process.exitCode = 1;
+    }
+    console.log("Shutting down server..");
+    process.exit();
+});

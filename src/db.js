@@ -14,6 +14,7 @@ export async function createDbPool() {
         await pool.query('SELECT 1'); // connection actually made here. Thats why this is used for health check up. 
     }
     catch (error) {
+        await pool.end()
         throw new Error(error.message);
     }
     return pool;
