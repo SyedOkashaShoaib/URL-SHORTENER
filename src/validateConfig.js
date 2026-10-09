@@ -1,6 +1,6 @@
 export function validateConfig() {
     const requiredVars = [
-        'BASE_URL',
+        'BASE',
         'PGHOST',
         'PGPORT',
         'PGUSER',
@@ -19,7 +19,7 @@ export function validateConfig() {
     let baseUrl;
 
     try {
-        baseUrl = new URL(process.env.BASE_URL);
+        baseUrl = new URL(process.env.BASE);
     }
     catch {
         throw new Error('BASE_URL must be a valid URL');
